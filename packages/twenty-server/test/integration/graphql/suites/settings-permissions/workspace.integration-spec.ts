@@ -337,36 +337,6 @@ describe('workspace permissions', () => {
   });
 
   describe('billing', () => {
-    describe('switchToYearlyInterval', () => {
-      it('should throw a permission error when user does not have permission (member role)', async () => {
-        const queryData = {
-          query: `
-            mutation SwitchToYearlyInterval {
-              switchToYearlyInterval {
-                success
-              }
-            }
-          `,
-        };
-
-        await client
-          .post('/graphql')
-          .set('Authorization', `Bearer ${MEMBER_ACCESS_TOKEN}`)
-          .send(queryData)
-          .expect(200)
-          .expect((res) => {
-            expect(res.body.data).toBeNull();
-            expect(res.body.errors).toBeDefined();
-            expect(res.body.errors[0].message).toBe(
-              PermissionsExceptionMessage.PERMISSION_DENIED,
-            );
-            expect(res.body.errors[0].extensions.code).toBe(
-              ErrorCode.FORBIDDEN,
-            );
-          });
-      });
-    });
-
     describe('billingPortalSession', () => {
       it('should throw a permission error when user does not have permission (member role)', async () => {
         const queryData = {

@@ -11,7 +11,6 @@ import { BillingEndTrialPeriodOutput } from 'src/engine/core-modules/billing/dto
 import { BillingMeteredProductUsageOutput } from 'src/engine/core-modules/billing/dtos/outputs/billing-metered-product-usage.output';
 import { BillingPlanOutput } from 'src/engine/core-modules/billing/dtos/outputs/billing-plan.output';
 import { BillingSessionOutput } from 'src/engine/core-modules/billing/dtos/outputs/billing-session.output';
-import { BillingUpdateOutput } from 'src/engine/core-modules/billing/dtos/outputs/billing-update.output';
 import { BillingPlanKey } from 'src/engine/core-modules/billing/enums/billing-plan-key.enum';
 import { BillingPlanService } from 'src/engine/core-modules/billing/services/billing-plan.service';
 import { BillingPortalWorkspaceService } from 'src/engine/core-modules/billing/services/billing-portal.workspace-service';
@@ -111,17 +110,6 @@ export class BillingResolver {
     return {
       url: checkoutSessionURL,
     };
-  }
-
-  @Mutation(() => BillingUpdateOutput)
-  @UseGuards(
-    WorkspaceAuthGuard,
-    SettingsPermissionsGuard(SettingPermissionType.WORKSPACE),
-  )
-  async switchToYearlyInterval(@AuthWorkspace() workspace: Workspace) {
-    await this.billingSubscriptionService.switchToYearlyInterval(workspace);
-
-    return { success: true };
   }
 
   @Query(() => [BillingPlanOutput])

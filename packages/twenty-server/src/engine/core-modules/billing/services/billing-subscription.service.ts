@@ -15,12 +15,10 @@ import {
   BillingExceptionCode,
 } from 'src/engine/core-modules/billing/billing.exception';
 import { BillingEntitlement } from 'src/engine/core-modules/billing/entities/billing-entitlement.entity';
-import { BillingPrice } from 'src/engine/core-modules/billing/entities/billing-price.entity';
 import { BillingSubscriptionItem } from 'src/engine/core-modules/billing/entities/billing-subscription-item.entity';
 import { BillingSubscription } from 'src/engine/core-modules/billing/entities/billing-subscription.entity';
 import { BillingEntitlementKey } from 'src/engine/core-modules/billing/enums/billing-entitlement-key.enum';
 import { BillingProductKey } from 'src/engine/core-modules/billing/enums/billing-product-key.enum';
-import { SubscriptionInterval } from 'src/engine/core-modules/billing/enums/billing-subscription-interval.enum';
 import { SubscriptionStatus } from 'src/engine/core-modules/billing/enums/billing-subscription-status.enum';
 import { BillingPlanService } from 'src/engine/core-modules/billing/services/billing-plan.service';
 import { BillingProductService } from 'src/engine/core-modules/billing/services/billing-product.service';
@@ -31,6 +29,7 @@ import { getPlanKeyFromSubscription } from 'src/engine/core-modules/billing/util
 import { getSubscriptionStatus } from 'src/engine/core-modules/billing/webhooks/utils/transform-stripe-subscription-event-to-database-subscription.util';
 import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
 import { Workspace } from 'src/engine/core-modules/workspace/workspace.entity';
+
 @Injectable()
 export class BillingSubscriptionService {
   protected readonly logger = new Logger(BillingSubscriptionService.name);
@@ -152,66 +151,6 @@ export class BillingSubscriptionService {
     }
 
     return entitlement.value;
-  }
-
-  async switchToYearlyInterval(workspace: Workspace) {
-    const billingSubscription = await this.getCurrentBillingSubscriptionOrThrow(
-      { workspaceId: workspace.id },
-    );
-
-    if (billingSubscription.interval === SubscriptionInterval.Year) {
-      throw new BillingException(
-        'Cannot switch from yearly to monthly billing interval',
-        BillingExceptionCode.BILLING_SUBSCRIPTION_INTERVAL_NOT_SWITCHABLE,
-      );
-    }
-
-    const newInterval = SubscriptionInterval.Year;
-
-    const planKey = getPlanKeyFromSubscription(billingSubscription);
-    const billingProductsByPlan =
-      await this.billingProductService.getProductsByPlan(planKey);
-    const pricesPerPlanArray =
-      this.billingProductService.getProductPricesByInterval({
-        interval: newInterval,
-        billingProductsByPlan,
-      });
-
-    const subscriptionItemsToUpdate = this.getSubscriptionItemsToUpdate(
-      billingSubscription,
-      pricesPerPlanArray,
-    );
-
-    await this.stripeSubscriptionService.updateSubscriptionItems(
-      billingSubscription.stripeSubscriptionId,
-      subscriptionItemsToUpdate,
-    );
-  }
-
-  private getSubscriptionItemsToUpdate(
-    billingSubscription: BillingSubscription,
-    billingPricesPerPlanAndIntervalArray: BillingPrice[],
-  ): BillingSubscriptionItem[] {
-    const subscriptionItemsToUpdate =
-      billingSubscription.billingSubscriptionItems.map((subscriptionItem) => {
-        const matchingPrice = billingPricesPerPlanAndIntervalArray.find(
-          (price) => price.stripeProductId === subscriptionItem.stripeProductId,
-        );
-
-        if (!matchingPrice) {
-          throw new BillingException(
-            `Cannot find matching price for product ${subscriptionItem.stripeProductId}`,
-            BillingExceptionCode.BILLING_PRICE_NOT_FOUND,
-          );
-        }
-
-        return {
-          ...subscriptionItem,
-          stripePriceId: matchingPrice.stripePriceId,
-        };
-      });
-
-    return subscriptionItemsToUpdate;
   }
 
   async endTrialPeriod(workspace: Workspace) {
